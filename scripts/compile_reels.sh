@@ -11,7 +11,7 @@ mkdir -p "$TMP"
 mkdir -p "$(dirname "$OUTPUT")"
 
 # pick 15 random mp4s
-FILES=($(find "$INPUT_DIR" -maxdepth 1 -type f -iname "*.mp4" | sort -R | head -n 15))
+mapfile -t FILES < <(find "$INPUT_DIR" -maxdepth 1 -type f -iname "*.mp4" | sort -R | head -n 15)
 [ ${#FILES[@]} -eq 0 ] && echo "❌ No .mp4 files found" && exit 1
 
 # pick 1 random audio

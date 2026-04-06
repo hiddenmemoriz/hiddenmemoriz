@@ -1,0 +1,3 @@
+pydub          # for audio handling
+ffmpeg-python  # optional wrapper for FFmpeg
+rclone         # if you later want to upload to Google Drive

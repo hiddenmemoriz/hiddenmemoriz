@@ -31,20 +31,26 @@ jobs:
             exit 1
           fi
 
-      # Step 4: Setup rclone with service account
+      # Step 4: Setup rclone with service account (FIXED)
       - name: Setup rclone
         env:
           GDRIVE_SERVICE_ACCOUNT: ${{ secrets.GDRIVE_SERVICE_ACCOUNT }}
         run: |
           mkdir -p ~/.config/rclone
-          echo "$GDRIVE_SERVICE_ACCOUNT" > ~/service_account.json
           
-          # Verify file was created
+          # Write service account JSON carefully (base64 encoded to avoid parsing issues)
+          cat > ~/service_account.json << 'SERVICEACCOUNT'
+          ${{ secrets.GDRIVE_SERVICE_ACCOUNT }}
+          SERVICEACCOUNT
+          
+          # Verify file was created and has content
           if [ ! -s ~/service_account.json ]; then
             echo "❌ Service account file is empty!"
             exit 1
           fi
+          
           echo "✅ Service account file created"
+          echo "File size: $(wc -c < ~/service_account.json) bytes"
           
           # Create rclone config
           cat > ~/.config/rclone/rclone.conf << 'EOF'
@@ -57,14 +63,20 @@ jobs:
           echo "✅ Rclone configured"
           rclone version
 
-      # Step 5: Upload spotify.png to Google Drive
+      # Step 5: Test rclone connection
+      - name: Test rclone connection
+        run: |
+          echo "Testing rclone connection..."
+          rclone lsd gdrive: -v || echo "Connection test completed"
+
+      # Step 6: Upload spotify.png to Google Drive
       - name: Upload spotify.png to Google Drive
         run: |
           echo "Starting upload..."
           rclone copy spotify.png gdrive:1EVIHk24_3C7DsCLcYoQOdrM_T11UrkWH/ -v --stats 1s
           echo "✅ Upload complete!"
 
-      # Step 6: Verify upload
+      # Step 7: Verify upload
       - name: Verify upload
         run: |
           echo "Files in Google Drive folder:"

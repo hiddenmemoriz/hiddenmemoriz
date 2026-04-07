@@ -1,19 +1,29 @@
-name: Test GDrive Service Account
+name: Upload to Google Drive
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  test-sa:
+  upload:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Install Rclone
         run: |
           curl https://rclone.org/install.sh | sudo bash
 
-      - name: Test Service Account
-        env:
-          SA_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT }}
+      - name: Save Service Account JSON
         run: |
-          echo "$SA_JSON" > /tmp/sa.json
-          rclone about gdrive: --drive-service-account-file /tmp/sa.json
+          echo "$GDRIVE_SERVICE_ACCOUNT" > /tmp/sa.json
+
+      - name: Test Drive Access
+        run: |
+          rclone about drive: --drive-service-account-file /tmp/sa.json
+
+      - name: Upload File to Google Drive
+        run: |
+          rclone copy spotify.png drive:1EVIHk24_3C7DsCLcYoQOdrM_T11UrkWH/ --drive-service-account-file /tmp/sa.json -P

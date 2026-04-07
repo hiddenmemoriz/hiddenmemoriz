@@ -4,16 +4,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  upload_file:
+  upload:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Upload to Google Drive
-        uses: adityassubramanian/gdrive-upload-action@master
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          credentials: ${{ secrets.GDRIVE_SERVICE_ACCOUNT }}
-          filename: "spotify.png"
-          folderId: "1EVIHk24_3C7DsCLcYoQOdrM_T11UrkWH"
-          overwrite: "true"
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Upload Script
+        env:
+          GDRIVE_SERVICE_ACCOUNT: ${{ secrets.GDRIVE_SERVICE_ACCOUNT }}
+        run: python upload.py

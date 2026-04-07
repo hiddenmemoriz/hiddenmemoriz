@@ -8,22 +8,24 @@ on:
 jobs:
   upload:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Rclone
+      - name: Install rclone
         run: |
           curl https://rclone.org/install.sh | sudo bash
 
       - name: Save Service Account JSON
+        env:
+          SA_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT }}
         run: |
-          echo "$GDRIVE_SERVICE_ACCOUNT" > /tmp/sa.json
-
-      - name: Test Drive Access
-        run: |
-          rclone about drive: --drive-service-account-file /tmp/sa.json
+          echo "$SA_JSON" > /tmp/sa.json
 
       - name: Upload File to Google Drive
         run: |
-          rclone copy spotify.png drive:1EVIHk24_3C7DsCLcYoQOdrM_T11UrkWH/ --drive-service-account-file /tmp/sa.json -P
+          rclone copy spotify.png "drive:1EVIHk24_3C7DsCLcYoQOdrM_T11UrkWH" \
+            --drive-service-account-file /tmp/sa.json \
+            --drive-impersonate=reels-bot@spry-precinct-486106-u1.iam.gserviceaccount.com \
+            -P

@@ -1,7 +1,7 @@
 name: Test Rclone Upload
 
 on:
-  workflow_dispatch:  # allows manual trigger
+  workflow_dispatch:
 
 jobs:
   rclone-upload:
@@ -20,8 +20,8 @@ jobs:
 
       - name: Test service account
         run: |
-          rclone about drive: --drive-service-account-file /tmp/sa.json
+          rclone about gdrive: --drive-service-account-file /tmp/sa.json
 
-      - name: Upload file to Drive
+      - name: Upload file to Drive folder
         run: |
-          rclone copy spotify.png drive:/ --drive-service-account-file /tmp/sa.json -P
+          rclone copy spotify.png gdrive:1EVIHk24_3C7DsCLcYoQOdrM_T11UrkWH/ --drive-service-account-file /tmp/sa.json -P

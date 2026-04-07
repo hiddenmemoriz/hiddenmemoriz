@@ -1,53 +1,55 @@
 name: Upload to Google Drive
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch: # can trigger manually
 
 jobs:
   upload:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12"
+          python-version: 3.12
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib
 
-      - name: Save Service Account JSON
-        run: |
-          mkdir -p $HOME/.secrets
-          echo '${{ secrets.GDRIVE_SERVICE_ACCOUNT }}' > $HOME/.secrets/service_account.json
+      - name: Write service account JSON
+        run: echo "${{ secrets.GDRIVE_SERVICE_ACCOUNT }}" > /tmp/sa.json
 
       - name: Upload file to Google Drive
         run: |
           python - <<EOF
-          import os
+          import json
           from google.oauth2 import service_account
           from googleapiclient.discovery import build
-          from googleapiclient.http import MediaFileUpload
 
-          SERVICE_ACCOUNT_FILE = os.path.expanduser("~/.secrets/service_account.json")
-          SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+          # Path to service account JSON
+          SERVICE_ACCOUNT_FILE = "/tmp/sa.json"
 
-          creds = service_account.Credentials.from_service_account_file(
-              SERVICE_ACCOUNT_FILE, scopes=SCOPES
+          # Authenticate
+          credentials = service_account.Credentials.from_service_account_file(
+              SERVICE_ACCOUNT_FILE,
+              scopes=["https://www.googleapis.com/auth/drive"]
           )
 
-          drive_service = build('drive', 'v3', credentials=creds)
+          service = build('drive', 'v3', credentials=credentials)
 
-          file_metadata = {'name': 'spotify.png'}  # File name in Drive
-          media = MediaFileUpload('spotify.png', mimetype='image/png')
+          # File to upload
+          file_metadata = {
+              'name': 'spotify.png',   # name in Drive
+              # Optional: upload to a specific folder
+              # 'parents': ['YOUR_FOLDER_ID']
+          }
+          media = googleapiclient.http.MediaFileUpload('spotify.png', resumable=True)
 
-          file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-          print("Uploaded File ID:", file.get('id'))
+          file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+          print(f"Uploaded file with ID: {file.get('id')}")
           EOF

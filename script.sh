@@ -84,22 +84,28 @@ ffmpeg -i "$VISUAL_MASTER" -i "$AUDIO_FILE" \
   -map 0:v -map "[aud]" -c:v copy -c:a aac -b:a 128k -shortest \
   -movflags +faststart "$out_file" -y -loglevel warning
 
-# --- 5. GITHUB RELEASE & WEBHOOK (All in one place) ---
+# --- 5. CATBOX UPLOAD, GITHUB RELEASE & WEBHOOK ---
 if [ -n "$GH_TOKEN" ]; then
-    echo "📦 Creating Release..."
+    # 1. Upload to Catbox for Instagram (Alternative Link)
+    echo "📤 Uploading to Catbox..."
+    CAT_URL=$(curl -F "reqtype=fileupload" -F "fileToUpload=@$out_file" https://catbox.moe/user/api.php)
+    
+    # 2. Create GitHub Release (Backup Storage)
+    echo "📦 Creating GitHub Release..."
     TAG_NAME="v-${GITHUB_RUN_ID:-$(date +%s)}"
     gh release create "$TAG_NAME" "$out_file" --title "Reel: $safe_name"
+    GHT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG_NAME/$url_filename"
     
-    # We construct the link right here in the script
-    DIRECT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG_NAME/$url_filename"
-    
-if [ -n "$WEBHOOK_URL" ]; then
+    # 3. Use Catbox as primary downloadLink if it succeeded
+    FINAL_URL=$([ "${CAT_URL:0:4}" == "http" ] && echo "$CAT_URL" || echo "$GHT_URL")
+
+    if [ -n "$WEBHOOK_URL" ]; then
         echo "🚀 Sending Webhook..."
         curl -X POST -H "Content-Type: application/json" \
-          -d "{\"downloadLink\": \"$DIRECT_URL\", \"fileName\": \"$safe_name\"}" \
+          -d "{\"downloadLink\": \"$FINAL_URL\", \"githubLink\": \"$GHT_URL\", \"fileName\": \"$safe_name\"}" \
           "$WEBHOOK_URL"
     fi
-
+    
     # Cleanup old releases
     echo "🧹 Cleaning up..."
     OLD_RELEASES=$(gh release list --limit 20 --json tagName --jq '.[].tagName' | grep "v-" | grep -v "$TAG_NAME") || true
